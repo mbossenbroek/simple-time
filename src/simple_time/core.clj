@@ -1,5 +1,5 @@
 (ns simple-time.core
-  (:refer-clojure :exclude [format + - = not= < > <= >=])
+  (:refer-clojure :exclude [format + - = not= < > <= >= with-precision])
   (:require [simple-time.interop :as jt])
   (:import [org.joda.time LocalDateTime DateTimeZone Duration Period]
            [org.joda.time.format DateTimeFormat DateTimeFormatter ISODateTimeFormat]))
@@ -134,47 +134,6 @@
   [^SimpleDateTime datetime]
   {:pre [(datetime? datetime)]}
   (-> datetime jt/datetime->LocalDateTime .toDateTime .getMillis))
-
-(defn datetime->date
-  "Returns the date with no time component.
-
-  Example:
-    => (= (datetime->date (datetime 2014 1 2 12 34 56))
-          (datetime 2014 1 2))
-    true
-"
-  [^SimpleDateTime datetime]
-  {:pre [(datetime? datetime)]}
-  (apply simple-time.core/datetime
-         ((juxt datetime->year datetime->month datetime->day) datetime)))
-
-(defn datetime->day-of-week
-  "Returns the day of the week (1-7) of the specified date.
-
-  Example:
-    => (datetime->day-of-week (datetime 2014 1 6)) ; Monday
-    1
-    => (datetime->day-of-week (datetime 2014 1 5)) ; Sunday
-    7
-"
-  [^SimpleDateTime datetime]
-  {:pre [(datetime? datetime)]}
-  (-> datetime jt/datetime->LocalDateTime .getDayOfWeek))
-
-(defn datetime->day-of-year
-  "Returns the day of the year (1-366) of the specified date.
-
-  Example:
-    => (datetime->day-of-year (datetime 2014 1 1))   ; New year's day
-    1
-    => (datetime->day-of-year (datetime 2014 12 31)) ; New year's eve
-    365
-    => (datetime->day-of-year (datetime 2012 12 31)) ; Leap year
-    366
-"
-  [^SimpleDateTime datetime]
-  {:pre [(datetime? datetime)]}
-  (-> datetime jt/datetime->LocalDateTime .getDayOfYear))
 
 ;; ****************************************************************************
 
@@ -428,159 +387,6 @@ instance represents.
 
 ;; ****************************************************************************
 
-(defrecord SimpleFormatter
-  [formatter type round-trip])
-
-(def ^:private string->formatter
-  "Creates a formatter from a string. Don't use directly - use formatter instead."
-  (memoize
-    (fn [format]
-      (DateTimeFormat/forPattern format))))
-
-(def datetime-formatters
-  {
-   :basic-date (->SimpleFormatter (ISODateTimeFormat/basicDate) :datetime (fn [d] (apply datetime ((juxt datetime->year datetime->month datetime->day) d))))
-;   :basic-date-time (ISODateTimeFormat/basicDateTime)
-;   :basic-date-time-no-ms (ISODateTimeFormat/basicDateTimeNoMillis)
-;
-;   :basic-ordinal-date (ISODateTimeFormat/basicOrdinalDate)
-;   :basic-ordinal-date-time (ISODateTimeFormat/basicOrdinalDateTime)
-;   :basic-ordinal-date-time-no-ms (ISODateTimeFormat/basicOrdinalDateTimeNoMillis)
-;   
-;   :basic-week-date (ISODateTimeFormat/basicWeekDate)
-;   :basic-week-date-time (ISODateTimeFormat/basicWeekDateTime)
-;   :basic-week-date-time-no-ms (ISODateTimeFormat/basicWeekDateTimeNoMillis)
-;   
-;   :date (ISODateTimeFormat/date)
-;   :date-time (ISODateTimeFormat/dateTime)
-;   :date-time-no-ms (ISODateTimeFormat/dateTimeNoMillis)
-;   :date-hour (ISODateTimeFormat/dateHour)
-;   :date-hour-minute (ISODateTimeFormat/dateHourMinute)
-;   :date-hour-minute-second (ISODateTimeFormat/dateHourMinuteSecond)
-;   :date-hour-minute-second-ms (ISODateTimeFormat/dateHourMinuteSecondMillis)
-;
-;   :ordinal-date (ISODateTimeFormat/ordinalDate)
-;   :ordinal-date-time (ISODateTimeFormat/ordinalDateTime)
-;   :ordinal-date-time-no-ms (ISODateTimeFormat/ordinalDateTimeNoMillis)
-;   
-;   :week-date (ISODateTimeFormat/weekDate)
-;   :week-date-time (ISODateTimeFormat/weekDateTime)
-;   :week-date-time-no-ms (ISODateTimeFormat/weekDateTimeNoMillis)
-;   :weekyear (ISODateTimeFormat/weekyear)
-;   :weekyear-week (ISODateTimeFormat/weekyearWeek)
-;   :weekyear-week-day (ISODateTimeFormat/weekyearWeekDay)
-;   
-;   :year (ISODateTimeFormat/year)
-;   :year-month (ISODateTimeFormat/yearMonth)
-;   :year-month-day (ISODateTimeFormat/yearMonthDay)
-;
-;   :short-date (DateTimeFormat/shortDate)
-;   :short-date-time (DateTimeFormat/shortDateTime)
-;   
-;   :medium-date (DateTimeFormat/mediumDate)
-;   :medium-date-time (DateTimeFormat/mediumDateTime)
-;   
-;   :long-date (DateTimeFormat/longDate)
-;   :long-date-time (DateTimeFormat/longDateTime)
-;   :long-month-day (string->formatter "MMMM d")
-;   :long-year-month (string->formatter "MMMM, YYYY")
-;   
-;   :full-date (DateTimeFormat/fullDate)
-;   :full-date-time (DateTimeFormat/fullDateTime)
-   })
-
-(def timespan-formatters
-  {
-;   :basic-time (ISODateTimeFormat/basicTime)
-;   :basic-time-no-ms (ISODateTimeFormat/basicTimeNoMillis)
-;   :basic-t-time (ISODateTimeFormat/basicTTime)
-;   :basic-t-time-no-ms (ISODateTimeFormat/basicTTimeNoMillis)
-;   
-;   :hour (ISODateTimeFormat/hour)
-;   :hour-minute (ISODateTimeFormat/hourMinute)
-;   :hour-minute-second (ISODateTimeFormat/hourMinuteSecond)
-;   :hour-minute-second-ms (ISODateTimeFormat/hourMinuteSecondMillis)
-;   
-;   :time (ISODateTimeFormat/time)
-;   :time-no-ms (ISODateTimeFormat/timeNoMillis)
-;   :t-time (ISODateTimeFormat/tTime)
-;   :t-time-no-ms (ISODateTimeFormat/tTimeNoMillis)
-;   
-;   :short-time (DateTimeFormat/shortTime)
-;   :medium-time (DateTimeFormat/mediumTime)
-;   :long-time (DateTimeFormat/longTime)
-;   :full-time (DateTimeFormat/fullTime)
-   })
-
-(def formatters
-  (merge datetime-formatters timespan-formatters))
-
-(defn formatter
-  "Returns a formatter based on the specified format. If a string is supplied,
-creates a new, memoized formatter. If a keyword is supplied, returns a
-pre-defined formatter. See format-all for the set of pre-defined formatters.
-Generally, this isn't used directly - the same types can be passed to parse and
-format.
-
-  Example:
-    (formatter \"YYYYmmDD\")
-    (formatter :date-time)
-"
-  [format]
-  {:post [%]}
-  (cond
-    (instance? SimpleFormatter format) (:formatter format)
-    (instance? DateTimeFormatter format) format
-    (keyword? format) (formatter (formatters format))
-    (string? format) (string->formatter format)
-    :else (throw (IllegalArgumentException. (str "Unknown formatter:" format)))))
-
-;; TODO format timespan
-;; TODO edn inst
-(defn format
-  "Formats a datetime and returns a string representation of the value.
-
-  Example:
-    (format (datetime 2014 1 2 12 34 56 789))
-    (format (datetime 2014 1 2 12 34 56 789) \"YYYYmmDD\")
-    (format (datetime 2014 1 2 12 34 56 789) :date-time)
-"
-  ([datetime] (format datetime :date-time))
-  ([datetime format]
-    (let [^DateTimeFormatter format (formatter format)]
-      (.print format (jt/datetime->LocalDateTime datetime)))))
-
-(defn format-all
-  "Format a datetime using all known formatters. Useful for exploring the
-built-in formatters.
-
-  Example:
-    (format-all (datetime 2014 1 2 12 34 56 789))
-"
-  [datetime]
-  (->> datetime-formatters
-    (sort-by first)
-    (map (fn [[t f]] (prn t) [t (format datetime f)]))
-    (into (sorted-map))))
-
-;; TODO fix roundtripping on :date-time
-;; TODO test roundtripping on all
-(defn parse
-  "Parses a string into a datetime based on the specified format. If no format
-is provided, ISO8601 is used by default.
-
-  Example:
-    (parse \"2014-01-26T19:03:49.825Z\")
-    (parse \"20140126\" \"YYYYmmDD\")
-"
-  ([^String value] (parse value :date-time))
-  ([^String value format]
-    (let [format (formatter format)]
-      (->SimpleDateTime
-        (LocalDateTime/parse value format)))))
-
-;; ****************************************************************************
-
 (defn ^:private throw-illegal-math [description datetime timespans]
   (let [form (->> timespans (cons datetime) (map (comp #(.getName ^Class %) type)) (clojure.string/join " "))]
     (throw (AssertionError. (str "Illegal time " description ": (" form ")")))))
@@ -795,6 +601,118 @@ must be only one datetime.
 
 ;; ****************************************************************************
 
+(defn with-precision
+  "Returns a datetime or timespan with the desired precision. precision is a set
+of fields to retain. If :year is not specified, returns a timespan. Available
+fields are :year, :month, :day, :hour, :minute, :second, and :millisecond. When
+a datetime or timespan is not specified, returns a function that takes a
+datetime or timespan and returns it with the specified precision.
+
+  Example:
+    (with-precision #{:year :month} (datetime 2014 1 15)) -> (datetime 2014 1 1)
+    (with-precision #{:year :month} (datetime 2014 1 15 12 34 56 789)) -> (datetime 2014 1 1)
+    (with-precision #{:hour :minute :second} (datetime 2014 1 15 12 34 56 789)) -> (timespan 12 34 56)
+
+    (def ym (with-precision #{:year :month}))
+    (ym (datetime 2014 1 15)) -> (datetime 2014 1 1)
+
+  Note: You cannot specify :month without :year
+"
+  ([precision] (partial with-precision precision))
+  ([precision datetime]
+    {:pre [(set? precision)]}
+    (cond
+      (datetime? datetime)
+      (cond
+        (:year precision)
+        (simple-time.core/datetime
+          (datetime->year datetime)
+          (if (:month precision) (datetime->month datetime) 1)
+          (if (:day precision) (datetime->day datetime) 1)
+          (if (:hour precision) (datetime->hour datetime) 0)
+          (if (:minute precision) (datetime->minute datetime) 0)
+          (if (:second precision) (datetime->second datetime) 0)
+          (if (:millisecond precision) (datetime->millisecond datetime) 0))
+        
+        (:month precision)
+        (throw (IllegalArgumentException. "When using :month precision, you must also use :year."))
+        
+        :else
+        (timespan
+          (if (:day precision) (datetime->day datetime) 0)
+          (if (:hour precision) (datetime->hour datetime) 0)
+          (if (:minute precision) (datetime->minute datetime) 0)
+          (if (:second precision) (datetime->second datetime) 0)
+          (if (:millisecond precision) (datetime->millisecond datetime) 0)))
+    
+      (timespan? datetime)
+      (timespan
+          (if (:day precision) (timespan->days datetime) 0)
+          (if (:hour precision) (timespan->hours datetime) 0)
+          (if (:minute precision) (timespan->minutes datetime) 0)
+          (if (:second precision) (timespan->seconds datetime) 0)
+          (if (:millisecond precision) (timespan->milliseconds datetime) 0)))))
+
+(defn datetime->date
+  "Returns the date with no time component.
+
+  Example:
+    => (= (datetime->date (datetime 2014 1 2 12 34 56))
+          (datetime 2014 1 2))
+    true
+"
+  [^SimpleDateTime datetime]
+  {:pre [(datetime? datetime)]}
+  (with-precision #{:year :month :day} datetime))
+
+(defn datetime->day-of-week
+  "Returns the day of the week (1-7) of the specified date.
+
+  Example:
+    => (datetime->day-of-week (datetime 2014 1 6)) ; Monday
+    1
+    => (datetime->day-of-week (datetime 2014 1 5)) ; Sunday
+    7
+"
+  [^SimpleDateTime datetime]
+  {:pre [(datetime? datetime)]}
+  (-> datetime jt/datetime->LocalDateTime .getDayOfWeek))
+
+(defn datetime->day-of-year
+  "Returns the day of the year (1-366) of the specified date.
+
+  Example:
+    => (datetime->day-of-year (datetime 2014 1 1))   ; New year's day
+    1
+    => (datetime->day-of-year (datetime 2014 12 31)) ; New year's eve
+    365
+    => (datetime->day-of-year (datetime 2012 12 31)) ; Leap year
+    366
+"
+  [^SimpleDateTime datetime]
+  {:pre [(datetime? datetime)]}
+  (-> datetime jt/datetime->LocalDateTime .getDayOfYear))
+
+(defn datetime->time-of-day
+  "Returns a timespan based on the time of day.
+
+  Example:
+    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56))
+       (timespan 12 34 56))
+    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56 789))
+       (timespan 0 12 34 56 789))
+"
+  [datetime]
+  {:pre [(datetime? datetime)]}
+  (with-precision #{:hour :minute :second :millisecond} datetime))
+
+(defn days-in-month
+  "How many days are in a given month and year?"
+  [year month]
+  {:pre [(every? number? [year month])]}
+  (let [value (jt/datetime->LocalDateTime (datetime year month 1))]
+    (.. value dayOfMonth getMaximumValue)))
+
 (defn now
   "Returns the current datetime."
   []
@@ -815,22 +733,426 @@ must be only one datetime.
    "Converts a local datetime to UTC."
    []=)
 
-(defn datetime->time-of-day
-  "Returns a timespan based on the time of day.
+;; ****************************************************************************
+
+(defrecord SimpleFormatter
+  [formatter pre-format post-format pre-parse post-parse round-trip])
+
+(alter-meta! #'->SimpleFormatter assoc :no-doc true :private true)
+(alter-meta! #'map->SimpleFormatter assoc :no-doc true :private true)
+
+(defn ^:private ->simple-formatter [& {:as values}]
+  {:pre [(:formatter values)]}
+  (let [defaults {:pre-format identity
+                  :post-format identity
+                  :pre-parse identity
+                  :post-parse identity
+                  :round-trip identity}]
+    (map->SimpleFormatter (merge defaults values))))
+
+(def ^:private string->formatter
+  "Creates a formatter from a string. Don't use directly - use formatter instead."
+  (memoize
+    (fn [format]
+      (DateTimeFormat/forPattern format))))
+
+(defn ^:private add-timezone
+  "Adds a Z to the end of a local datetime so that it will parse."
+  [value]
+  (if (clojure.core/<= (byte \0) (byte (last value)) (byte \9))
+    (str value "Z")
+    value))
+
+(defn ^:private add-timezone-long
+  "Adds a Z to the end of a local datetime so that it will parse."
+  [^String value]
+  (if (or (.endsWith value " PM") (.endsWith value " AM"))
+    (str value " GMT")
+    value))
+
+;; TODO how to make this private?
+(def formatters
+  {
+   ;; datetime
+   
+   :basic-date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :basic-date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicDateTime)
+     :pre-parse add-timezone)
+   
+   :basic-date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicDateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+
+   :basic-ordinal-date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicOrdinalDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :basic-ordinal-date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicOrdinalDateTime)
+     :pre-parse add-timezone)
+   
+   :basic-ordinal-date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicOrdinalDateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :basic-week-date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicWeekDate)
+     :round-trip (with-precision #{:year :month :day}))
+
+   :basic-week-date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicWeekDateTime)
+     :pre-parse add-timezone)
+   
+   :basic-week-date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicWeekDateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/date)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateTime)
+     :pre-parse add-timezone)
+   
+   :date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :date-hour
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateHour)
+     :round-trip (with-precision #{:year :month :day :hour}))
+   
+   :date-hour-minute
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateHourMinute)
+     :round-trip (with-precision #{:year :month :day :hour :minute}))
+   
+   :date-hour-minute-second
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateHourMinuteSecond)
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :date-hour-minute-second-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/dateHourMinuteSecondMillis))
+
+   :ordinal-date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/ordinalDate)
+     :round-trip (with-precision #{:year :month :day}))
+
+   :ordinal-date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/ordinalDateTime)
+     :pre-parse add-timezone)
+   
+   :ordinal-date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/ordinalDateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :week-date
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :week-date-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekDateTime)
+     :pre-parse add-timezone)
+   
+   :week-date-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekDateTimeNoMillis)
+     :pre-parse add-timezone
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :weekyear
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekyear)
+     :round-trip #(with-precision #{:year :month :day}
+                    (- % (days->timespan (datetime->day-of-week %)) (days->timespan -1))))
+   
+   :weekyear-week
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekyearWeek)
+     :round-trip #(with-precision #{:year :month :day}
+                    (- % (days->timespan (datetime->day-of-week %)) (days->timespan -1))))
+   
+   :weekyear-week-day
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/weekyearWeekDay)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :year
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/year)
+     :round-trip (with-precision #{:year}))
+   
+   :year-month
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/yearMonth)
+     :round-trip (with-precision #{:year :month}))
+   
+   :year-month-day
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/yearMonthDay)
+     :round-trip (with-precision #{:year :month :day}))
+
+   :short-date
+   (->simple-formatter
+     :formatter (DateTimeFormat/shortDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :short-date-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/shortDateTime)
+     :round-trip (with-precision #{:year :month :day :hour :minute}))
+   
+   :medium-date
+   (->simple-formatter
+     :formatter (DateTimeFormat/mediumDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :medium-date-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/mediumDateTime)
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+   
+   :long-date
+   (->simple-formatter
+     :formatter (DateTimeFormat/longDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :long-date-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/longDateTime)
+     :post-format clojure.string/trim
+     :pre-parse add-timezone-long
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+
+   :long-month-day
+   (->simple-formatter
+     :formatter (string->formatter "MMMM d")
+     :round-trip nil)
+   
+   :long-year-month
+   (->simple-formatter
+     :formatter (string->formatter "MMMM, YYYY")
+     :round-trip (with-precision #{:year :month}))
+   
+   :full-date
+   (->simple-formatter
+     :formatter (DateTimeFormat/fullDate)
+     :round-trip (with-precision #{:year :month :day}))
+   
+   :full-date-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/fullDateTime)
+     :post-format clojure.string/trim
+     :pre-parse add-timezone-long
+     :round-trip (with-precision #{:year :month :day :hour :minute :second}))
+
+   ;; timespan
+   
+   :basic-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicTime)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second :millisecond}))
+   
+   :basic-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicTimeNoMillis)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+   
+   :basic-t-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicTTime)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second :millisecond}))
+   
+   :basic-t-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/basicTTimeNoMillis)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+   
+   :hour
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/hour)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour}))
+
+   :hour-minute
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/hourMinute)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute}))
+   
+   :hour-minute-second
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/hourMinuteSecond)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+   
+   :hour-minute-second-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/hourMinuteSecondMillis)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second :millisecond}))
+
+   :time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/time)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second :millisecond}))
+     
+   :time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/timeNoMillis)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))     
+     
+   :t-time
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/tTime)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second :millisecond}))
+
+   :t-time-no-ms
+   (->simple-formatter
+     :formatter (ISODateTimeFormat/tTimeNoMillis)
+     :pre-parse add-timezone
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+   
+   :short-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/shortTime)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute}))
+     
+   :medium-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/mediumTime)
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+     
+   :long-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/longTime)
+     :post-format clojure.string/trim
+     :pre-parse add-timezone-long
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+     
+   :full-time
+   (->simple-formatter
+     :formatter (DateTimeFormat/fullTime)
+     :post-format clojure.string/trim
+     :pre-parse add-timezone-long
+     :post-parse datetime->time-of-day
+     :round-trip (with-precision #{:hour :minute :second}))
+   })
+
+(defn formatter
+  "Returns a formatter based on the specified format. If a string is supplied,
+creates a new, memoized formatter. If a keyword is supplied, returns a
+pre-defined formatter. See format-all for the set of pre-defined formatters.
+Generally, this isn't used directly - the same types can be passed to parse and
+format.
 
   Example:
-    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56))
-       (timespan 12 34 56))
-    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56 789))
-       (timespan 0 12 34 56 789))
+    (formatter \"YYYYmmDD\")
+    (formatter :date-time)
+"
+  [format]
+  {:post [%]}
+  (cond
+    (instance? SimpleFormatter format) format
+    (instance? DateTimeFormatter format) (->SimpleFormatter identity format identity nil)
+    (keyword? format) (formatter (formatters format))
+    (string? format) (formatter (string->formatter format))
+    (map? format) (->simple-formatter format)
+    :else (throw (IllegalArgumentException. (str "Unknown formatter:" format)))))
+
+;; TODO edn inst
+(defn format
+  "Formats a datetime and returns a string representation of the value.
+
+  Example:
+    (format (datetime 2014 1 2 12 34 56 789))
+    (format (datetime 2014 1 2 12 34 56 789) \"YYYYmmDD\")
+    (format (datetime 2014 1 2 12 34 56 789) :medium-date-time)
+"
+  ([datetime] (format datetime :date-time))
+  ([datetime format]
+    (let [{:keys [pre-format formatter post-format]} (formatter format)]
+      (->> datetime
+        pre-format
+        jt/datetime->LocalDateTime
+        (.print ^DateTimeFormatter formatter)
+        post-format))))
+
+(defn format-all
+  "Format a datetime using all known formatters. Useful for exploring the
+built-in formatters.
+
+  Example:
+    (format-all (datetime 2014 1 2 12 34 56 789))
 "
   [datetime]
-  {:pre [(datetime? datetime)]}
-  (apply timespan 0 ((juxt datetime->hour datetime->minute datetime->second datetime->millisecond) datetime)))
+  (->> formatters
+    (sort-by first)
+    (map (fn [[t f]] [t (format datetime f)]))
+    (into (sorted-map))))
 
-(defn days-in-month
-  "How many days are in a given month and year?"
-  [year month]
-  {:pre [(every? number? [year month])]}
-  (let [value (jt/datetime->LocalDateTime (datetime year month 1))]
-    (.. value dayOfMonth getMaximumValue)))
+(defn parse
+  "Parses a string into a datetime based on the specified format. If no format
+is provided, ISO8601 is used by default.
+
+  Example:
+    (parse \"2014-01-26T19:03:49.825Z\")
+    (parse \"20140126\" \"YYYYmmDD\")
+    (parse \"Jan 2, 2014 12:34:56 PM\" :medium-date-time)
+"
+  ([^String value] (parse value :date-time))
+  ([^String value format]
+    (let [{:keys [pre-parse formatter post-parse]} (formatter format)]
+      (-> value
+        pre-parse
+        (LocalDateTime/parse formatter)
+        ->SimpleDateTime
+        post-parse))))

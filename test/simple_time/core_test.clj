@@ -2,6 +2,8 @@
   (:use clojure.test)
   (:require [simple-time.core :as st]))
 
+;; ****************************************************************************
+
 (deftest test-datetime?
   (is (st/datetime? (st/datetime)))
   (is (not (st/datetime? (st/timespan 42))))
@@ -30,6 +32,8 @@
     (is (= (st/datetime->epoch datetime)
            -618080400000)))
   (is (thrown? AssertionError (st/datetime "42"))))
+
+;; ****************************************************************************
 
 (deftest test-datetime->year
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
@@ -103,32 +107,7 @@
            1388660645006)))
   (is (thrown? AssertionError (st/datetime->epoch "42"))))
 
-(deftest test-datetime->date
-  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
-    (is (= (st/datetime->epoch (st/datetime->date datetime))
-           1388649600000)))
-  (let [datetime (st/datetime 1388660645006)]
-    (is (= (st/datetime->epoch (st/datetime->date datetime))
-           1388649600000)))
-  (is (thrown? AssertionError (st/datetime->date "42"))))
-
-(deftest test-datetime->day-of-week
-  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
-    (is (= (st/datetime->day-of-week datetime)
-           4)))
-  (let [datetime (st/datetime 1388660645006)]
-    (is (= (st/datetime->day-of-week datetime)
-           4)))
-  (is (thrown? AssertionError (st/datetime->day-of-week "42"))))
-
-(deftest test-datetime->day-of-year
-  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
-    (is (= (st/datetime->day-of-year datetime)
-           2)))
-  (let [datetime (st/datetime 1388660645006)]
-    (is (= (st/datetime->day-of-year datetime)
-           2)))
-  (is (thrown? AssertionError (st/datetime->day-of-year "42"))))
+;; ****************************************************************************
 
 (deftest test-timespan?
   (is (st/timespan? (st/timespan 42)))
@@ -153,6 +132,8 @@
            93784005)))
   (is (thrown? AssertionError (st/timespan "42")))
   (is (thrown? AssertionError (st/timespan "42" 0 0))))
+
+;; ****************************************************************************
 
 (deftest test-timespan->total-days
   (let [timespan (st/timespan 1 2 3 4 5)]
@@ -249,35 +230,7 @@
          (st/timespan 42)))
   (is (thrown? AssertionError (st/milliseconds->timespan "42"))))
 
-(deftest test-datetime->time-of-day
-  (let [datetime (st/datetime 2014 1 2 12 34 56)]
-    (is (= (st/datetime->time-of-day datetime)
-           (st/timespan 12 34 56))))
-  (let [datetime (st/datetime 2014 1 2 12 34 56 789)]
-    (is (= (st/datetime->time-of-day datetime)
-           (st/timespan 0 12 34 56 789))))
-  (is (thrown? AssertionError (st/datetime->time-of-day "42"))))
-
-;; TODO test-format
-;; TODO test-parse
-
-(defn safe-parse [value format]
-  (try
-    (st/parse value format)
-    (catch Exception z (.getMessage z))))
-
-(defn round-trip-formatter [value format]
-  (let [formatted-value (st/format value format)
-        parsed-value (safe-parse formatted-value format)
-        expected-value (if-let [round-trip (-> format st/datetime-formatters :round-trip)]
-                         (round-trip value)
-                         value)]
-    [(= expected-value parsed-value) expected-value parsed-value]))
-
-#_(deftest test-formatters
-   (let [value (st/datetime 2014 1 2 12 34 56 789)]
-     (doseq [format (keys simple-time.core/formatters)]
-       (round-trip-formatter value format))))
+;; ****************************************************************************
 
 (deftest test-sum-timespans
   (is (= (#'simple-time.core/sum-timespans [])
@@ -461,6 +414,86 @@
                   (st/datetime 2014 1 2)
                   (st/datetime 2014 1 3)))))
 
+(deftest test-duration
+  (is (= (st/duration (st/timespan -100))
+         (st/timespan 100)))
+  (is (= (st/duration (st/timespan 100))
+         (st/timespan 100))))
+
+;; ****************************************************************************
+
+(deftest test-with-precision
+  (is (= (st/with-precision #{:year :month :day :hour :minute :second :millisecond}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/datetime 2014 1 2 12 34 56 789)))
+  (is (= (st/with-precision #{:year :day :minute :millisecond}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/datetime 2014 1 2 0 34 0 789)))
+  (is (= (st/with-precision #{:year :month :hour :second}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/datetime 2014 1 1 12 0 56 0)))
+  (is (= (st/with-precision #{:year}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/datetime 2014 1 1)))
+  (is (thrown? IllegalArgumentException
+               (st/with-precision #{:month} (st/datetime 2014 1 2 12 34 56 789))))
+  (is (thrown? IllegalArgumentException
+               (st/with-precision #{:month :day :hour :minute :second :millisecond} (st/datetime 2014 1 2 12 34 56 789))))
+  (is (= (st/with-precision #{:day :hour :minute :second :millisecond}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/timespan 2 12 34 56 789)))
+  (is (= (st/with-precision #{:millisecond}
+           (st/datetime 2014 1 2 12 34 56 789))
+         (st/timespan 789)))
+  (is (= (st/with-precision #{:day :hour :minute :second :millisecond}
+           (st/timespan 2 12 34 56 789))
+         (st/timespan 2 12 34 56 789)))
+  (is (= (st/with-precision #{:hour :second}
+           (st/timespan 2 12 34 56 789))
+         (st/timespan 0 12 0 56 0))))
+
+(deftest test-datetime->date
+  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
+    (is (= (st/datetime->epoch (st/datetime->date datetime))
+           1388649600000)))
+  (let [datetime (st/datetime 1388660645006)]
+    (is (= (st/datetime->epoch (st/datetime->date datetime))
+           1388649600000)))
+  (is (thrown? AssertionError (st/datetime->date "42"))))
+
+(deftest test-datetime->day-of-week
+  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
+    (is (= (st/datetime->day-of-week datetime)
+           4)))
+  (let [datetime (st/datetime 1388660645006)]
+    (is (= (st/datetime->day-of-week datetime)
+           4)))
+  (is (thrown? AssertionError (st/datetime->day-of-week "42"))))
+
+(deftest test-datetime->day-of-year
+  (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
+    (is (= (st/datetime->day-of-year datetime)
+           2)))
+  (let [datetime (st/datetime 1388660645006)]
+    (is (= (st/datetime->day-of-year datetime)
+           2)))
+  (is (thrown? AssertionError (st/datetime->day-of-year "42"))))
+
+(deftest test-datetime->time-of-day
+  (let [datetime (st/datetime 2014 1 2 12 34 56)]
+    (is (= (st/datetime->time-of-day datetime)
+           (st/timespan 12 34 56))))
+  (let [datetime (st/datetime 2014 1 2 12 34 56 789)]
+    (is (= (st/datetime->time-of-day datetime)
+           (st/timespan 0 12 34 56 789))))
+  (is (thrown? AssertionError (st/datetime->time-of-day "42"))))
+
+(deftest test-days-in-month
+  (is (= (st/days-in-month 2014 1) 31))
+  (is (= (st/days-in-month 2014 2) 28))
+  (is (= (st/days-in-month 2012 2) 29))
+  (is (thrown? AssertionError (st/days-in-month "2014" "1"))))
+
 (deftest test-now
   (is (st/datetime? (st/now)))
   (is (< 0 (st/datetime->epoch (st/now)))))
@@ -476,14 +509,23 @@
   (is (st/datetime? (st/utc-now)))
   (is (< 0 (st/datetime->epoch (st/utc-now)))))
 
-(deftest test-duration
-  (is (= (st/duration (st/timespan -100))
-         (st/timespan 100)))
-  (is (= (st/duration (st/timespan 100))
-         (st/timespan 100))))
+;; ****************************************************************************
 
-(deftest test-days-in-month
-  (is (= (st/days-in-month 2014 1) 31))
-  (is (= (st/days-in-month 2014 2) 28))
-  (is (= (st/days-in-month 2012 2) 29))
-  (is (thrown? AssertionError (st/days-in-month "2014" "1"))))
+(defn safe-parse [value format]
+  (try
+    (st/parse value format)
+    (catch Exception z (.getMessage z))))
+
+(defn round-trip-formatter [value format]
+  (let [formatted (st/format value format)
+        parsed (safe-parse formatted format)]
+    (if-let [round-trip (-> format st/formatters :round-trip)]
+      (let [expected (round-trip value)]
+        [expected parsed])
+      [parsed parsed])))
+
+(deftest test-formatters
+  (let [value (st/datetime 2014 1 2 12 34 56 789)]
+    (doseq [format (keys simple-time.core/formatters)]
+      (let [[expected parsed] (round-trip-formatter value format)]
+        (is (= expected parsed) (str "Formatter " format))))))
