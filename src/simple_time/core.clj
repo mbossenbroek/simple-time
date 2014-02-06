@@ -406,6 +406,9 @@ must be only one datetime.
     (+) -> (timespan 0)
     (+ timespan) -> timespan
     (+ timespan & timespan*) -> timespan
+
+    (+ (datetime 2013 12 25) (days->timespan 7)) -> (datetime 2014 1 1)
+    (+ (hours->timespan 1) (minutes->timespan 2)) -> (timespan 1 2 0)
 "
   {:arglists '([] [datetime & timespans] [timespan & timespans])}
   ([] (->SimpleTimeSpan 0))
@@ -472,6 +475,7 @@ must be only one datetime.
 
   Example:
     (add-months (datetime 2014 1 1) 6) -> (datetime 2014 7 1)
+    (add-months (datetime 2014 1 31) 1) -> (datetime 2014 1 28)
 "
   [datetime months]
   {:pre [(datetime? datetime) (number? months)]}
@@ -657,9 +661,7 @@ datetime or timespan and returns it with the specified precision.
   "Returns the date with no time component.
 
   Example:
-    => (= (datetime->date (datetime 2014 1 2 12 34 56))
-          (datetime 2014 1 2))
-    true
+    (datetime->date (datetime 2014 1 2 12 34 56)) -> (datetime 2014 1 2)
 "
   [^SimpleDateTime datetime]
   {:pre [(datetime? datetime)]}
@@ -697,17 +699,21 @@ datetime or timespan and returns it with the specified precision.
   "Returns a timespan based on the time of day.
 
   Example:
-    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56))
-       (timespan 12 34 56))
-    (= (datetime->time-of-day (datetime 2014 1 2 12 34 56 789))
-       (timespan 0 12 34 56 789))
+    (datetime->time-of-day (datetime 2014 1 2 12 34 56)) -> (timespan 12 34 56))
+    (datetime->time-of-day (datetime 2014 1 2 12 34 56 789)) -> (timespan 0 12 34 56 789))
 "
   [datetime]
   {:pre [(datetime? datetime)]}
   (with-precision #{:hour :minute :second :millisecond} datetime))
 
 (defn days-in-month
-  "How many days are in a given month and year?"
+  "How many days are in a given month and year?
+
+  Example:
+    (days-in-month 2014 1) -> 31
+    (days-in-month 2014 2) -> 28
+    (days-in-month 2012 2) -> 29
+"
   [year month]
   {:pre [(every? number? [year month])]}
   (let [value (jt/datetime->LocalDateTime (datetime year month 1))]
@@ -1102,7 +1108,7 @@ format.
   {:post [%]}
   (cond
     (instance? SimpleFormatter format) format
-    (instance? DateTimeFormatter format) (->SimpleFormatter identity format identity nil)
+    (instance? DateTimeFormatter format) (->simple-formatter :formatter format)
     (keyword? format) (formatter (formatters format))
     (string? format) (formatter (string->formatter format))
     (map? format) (->simple-formatter format)
@@ -1113,9 +1119,14 @@ format.
   "Formats a datetime and returns a string representation of the value.
 
   Example:
-    (format (datetime 2014 1 2 12 34 56 789))
-    (format (datetime 2014 1 2 12 34 56 789) \"YYYYmmDD\")
-    (format (datetime 2014 1 2 12 34 56 789) :medium-date-time)
+    => (format (datetime 2014 1 2 12 34 56 789))
+    \"2014-01-02T12:34:56.789\"
+
+    => (format (datetime 2014 1 2 12 34 56 789) \"YYYYmmDD\")
+    \"20143402\"
+
+    => (format (datetime 2014 1 2 12 34 56 789) :medium-date-time)
+    \"Jan 2, 2014 12:34:56 PM\"
 "
   ([datetime] (format datetime :date-time))
   ([datetime format]
@@ -1144,9 +1155,9 @@ built-in formatters.
 is provided, ISO8601 is used by default.
 
   Example:
-    (parse \"2014-01-26T19:03:49.825Z\")
-    (parse \"20140126\" \"YYYYmmDD\")
-    (parse \"Jan 2, 2014 12:34:56 PM\" :medium-date-time)
+    (parse \"2014-01-02T12:34:56.789\") -> (datetime 2014 1 2 12 34 56 789)
+    (parse \"20140102\" \"YYYYmmDD\") -> (datetime 2014 1 2)
+    (parse \"Jan 2, 2014 12:34:56 PM\" :medium-date-time) -> (datetime 2014 1 2 12 34 56)
 "
   ([^String value] (parse value :date-time))
   ([^String value format]
