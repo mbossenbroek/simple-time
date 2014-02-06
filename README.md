@@ -30,6 +30,10 @@ With Maven:
 
 `simple-time` has two things: `datetime` and `timespan`
 
+``` clj
+(use 'simple-time.core)
+```
+
 ### Making time
 
 ``` clj
