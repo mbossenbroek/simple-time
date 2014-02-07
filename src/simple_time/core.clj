@@ -1115,6 +1115,7 @@ format.
     :else (throw (IllegalArgumentException. (str "Unknown formatter:" format)))))
 
 ;; TODO edn inst
+;; TODO timespan
 (defn format
   "Formats a datetime and returns a string representation of the value.
 

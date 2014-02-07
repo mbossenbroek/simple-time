@@ -2,7 +2,7 @@
 
 # simple-time
 
-A Clojure date & time library for people who can't tell time
+A Clojure date & time library for people who can't tell time. It's an opinionated, bare-bones, datetime and timespan library.
 
 ## Artifacts
 
@@ -28,13 +28,17 @@ With Maven:
 
 [Full API docs here](http://mbossenbroek.github.io/simple-time/simple-time.core.html)
 
-`simple-time` has two things: `datetime` and `timespan`
+`simple-time` has two things: [`datetime`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-datetime) and [`timespan`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-timespan). [`datetime`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-datetime) is a point in time; [`timespan`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-timespan) is a duration of time.
+
+Everything you'll need is in `simple-time.core`. There are a number of overlaps with `clojure.core`, so you'll probably want to use an alias.
 
 ``` clj
 (use 'simple-time.core)
 ```
 
 ### Making time
+
+You can create a [`datetime`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-datetime) in a few different ways:
 
 ``` clj
 (datetime) ; the current time
@@ -53,6 +57,8 @@ With Maven:
 ```
 
 ### What day is it?
+
+This is how to get the constituent parts of a `datetime`
 
 ``` clj
 => (datetime->year (datetime 2014 1 2))
@@ -79,6 +85,8 @@ With Maven:
 
 ### How long does it take?
 
+A [`timespan`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-timespan) represents a length of time. There are a few ways to create them:
+
 ``` clj
 (timespan) ; 0 ms
 (timespan 100) ; 100 ms
@@ -95,6 +103,8 @@ With Maven:
 
 ### But what is that in days/hours/etc?
 
+These methods return the entire duration, expressed as days, hours, minutes, seconds, or milliseconds. The return value will be a fractional value - use double or float as appropriate.
+
 ``` clj
 => (timespan->total-days (timespan 1 2 3 4 5))
 2084089/1920000
@@ -108,6 +118,8 @@ With Maven:
 ```
 
 ### Just the hours/minutes/seconds
+
+This is how to retrieve the constituent parts of a timespan:
 
 ``` clj
 => (timespan->days (timespan 1 2 3 4 5))
@@ -128,6 +140,10 @@ With Maven:
 
 ### Strings
 
+Serialization with simple-time is simple. There are just two functions you'll need: [`format`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-format) and [`parse`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-parse). `format` converts a `datetime` to a string and `parse` reads a string into a `datetime` or `timespan`, as appropriate.
+
+Each of them takes the value to format or parse and an optional formatter:
+
 ``` clj
 => (format (datetime 2014 1 2 12 34 56 789))
 "2014-01-02T12:34:56.789"
@@ -143,11 +159,16 @@ With Maven:
 (parse "Jan 2, 2014 12:34:56 PM" :medium-date-time) -> (datetime 2014 1 2 12 34 56)
 ```
 
-You can create a formatter by passing in a string or using a keyword for a predefined formatter. Use [`format-all`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-format-all) to explore the predefined formats. Joda-time formatters also work.
+Formatter can be a string or a keyword for a predefined formatter. Use [`format-all`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-format-all) to explore the predefined formats. Joda-time formatters also work.
+
+If you really want to, you can create a [`formatter`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-formatter), but the only reason is for your own code organization.
 
 ### Let's do some math
 
+With simple-time, you can add `datetime`s and `timespan`s together just as you would with numbers. Add a `timespan` to a `datetime` and you get another `datetime`. Subtract a `datetime` from another `datetime` and you get a `timespan` representing the duration between them.
+
 ``` clj
+; Allowed combinations
 (+ datetime) -> datetime
 (+ datetime & timespan*) -> datetime
 
@@ -155,14 +176,17 @@ You can create a formatter by passing in a string or using a keyword for a prede
 (+ timespan) -> timespan
 (+ timespan & timespan*) -> timespan
 
+; Examples
 (+ (datetime 2013 12 25) (days->timespan 7)) -> (datetime 2014 1 1)
 (+ (hours->timespan 1) (minutes->timespan 2)) -> (timespan 1 2 0)
 
+; Allowed combinations
 (- timespan) -> -timespan
 (- datetime datetime) -> timespan
 (- datetime & timespan*) -> datetime
 (- timespan & timespan*) -> timespan
 
+; Examples
 (- (datetime 2014 1 1) (days->timespan 7)) -> (datetime 2013 12 25)
 (- (datetime 2014 1 1) (datetime 2013 12 25)) -> (days->timespan 7)
 (- (datetime 2013 12 25) (datetime 2014 1 1)) -> (days->timespan -7)
@@ -170,7 +194,7 @@ You can create a formatter by passing in a string or using a keyword for a prede
 (duration (timespan -100)) -> (timespan 100)
 ```
 
-Months and years can't be in timespans, so we have this instead:
+Months and years can't be in timespans, so we use this instead:
 
 ``` clj
 (add-years (datetime 2014 1 1) 6) -> (datetime 2020 1 1)
@@ -180,7 +204,11 @@ Months and years can't be in timespans, so we have this instead:
 (add-months (datetime 2014 1 31) 1) -> (datetime 2014 1 28)
 ```
 
+There are also `add-days`, `add-hours`, `add-minutes`, `add-seconds`, and `add-milliseconds` for consistency.
+
 ### Comparisons
+
+Compare `datetime`s and `timespan`s just like you would numbers. Mixing & matching won't work - they all need to be the same type.
 
 ``` clj
 (= (datetime 2014 1 1) (datetime 2014 1 1))
@@ -193,18 +221,13 @@ Months and years can't be in timespans, so we have this instead:
 
 ### Misc
 
+Some random, but useful stuff. Also look at [`with-precision`](http://mbossenbroek.github.io/simple-time/simple-time.core.html#var-with-precision).
+
 ``` clj
 (datetime->date (datetime 2014 1 2 12 34 56)) -> (datetime 2014 1 2)
 
 (datetime->time-of-day (datetime 2014 1 2 12 34 56)) -> (timespan 12 34 56))
 (datetime->time-of-day (datetime 2014 1 2 12 34 56 789)) -> (timespan 0 12 34 56 789))
-
-=> (days-in-month 2014 1)
-31
-=> (days-in-month 2014 2)
-28
-=> (days-in-month 2012 2)
-29
 
 => (datetime->day-of-week (datetime 2014 1 6)) ; Monday
 1
@@ -217,7 +240,30 @@ Months and years can't be in timespans, so we have this instead:
 365
 => (datetime->day-of-year (datetime 2012 12 31)) ; Leap year
 366
+
+=> (days-in-month 2014 1)
+31
+=> (days-in-month 2014 2)
+28
+=> (days-in-month 2012 2)
+29
 ```
+
+## Credits
+
+`simple-time` is based on .Net's [DateTime](http://msdn.microsoft.com/en-us/library/system.datetime(v=vs.110).aspx) and [TimeSpan](http://msdn.microsoft.com/en-us/library/system.timespan(v=vs.110).aspx), which are awesome. When using them, I never once experienced the pain that I've endured once switching to the multitude of JVM libraries.
+
+## Motivations
+
+JodaTime is very class-heavy. There's DateTime, DateMidnight, LocalDate, LocalTime, LocalDateTime, Instant, and Partial - just for representing a point in time. For timespans, there's Interval, Period, and Duration. We haven't even talked about Chronologies yet - when's the last time you needed to figure out dates in a Coptic calendar? (If you're writing programs for ancient Egyptian farmers, simple-time is not the library for you.) And then there's Years, YearMonth, YearMonthDay, Weeks, Hours, Seconds... the list goes on. In the jar I have now, I'm counting 232 different classes and none of them seem to play well with one another.
+
+This is likely because I'm using a language that doesn't have intellisense (at least not in the Java sense of the word). JodaTime was designed to have a fluent interface. Each object has a set of things you can do to it - easily discoverable via intellisense. If you took all of those functions from all of the different classes and threw them in the same bag, it would become incredibly difficult to determine what goes with what. Libraries like JodaTime work very well with a type system and intellisense - of which Clojure has neither.
+
+The naming conventions used in simple-time are designed to eliminate that ambiguity. `datetime->hour` takes a `datetime` and returns a number. `hours->timespan` takes a number and returns a `timespan`. You'll never get a crazy `Hours` type or some intermediate calculation. The only things you'll ever see are `datetime`, `timespan`, numbers, and strings.
+
+## Future Work
+
+Timezone is notably absent from simple-time at the moment. It will be added soon. Chronology will never be added.
 
 ## License
 

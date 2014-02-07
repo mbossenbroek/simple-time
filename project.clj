@@ -7,5 +7,5 @@
                  [joda-time "2.3"]]
   :plugins [[codox "0.6.6"]]
   :codox {:include [simple-time.core]
-          :src-dir-uri "https://github.com/mbossenbroek/simple-time/tree/master/src"
+          :src-dir-uri "https://github.com/mbossenbroek/simple-time/tree/master/"
           :src-linenum-anchor-prefix "L"})
