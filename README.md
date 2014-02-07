@@ -165,7 +165,7 @@ If you really want to, you can create a [`formatter`](http://mbossenbroek.github
 
 ### Let's do some math
 
-With simple-time, you can add `datetime`s and `timespan`s together just as you would with numbers. Add a `timespan` to a `datetime` and you get another `datetime`. Subtract a `datetime` from another `datetime` and you get a `timespan` representing the duration between them.
+With simple-time, you can add datetimes and timespans together just as you would with numbers. Add a `timespan` to a `datetime` and you get another `datetime`. Subtract a `datetime` from another `datetime` and you get a `timespan` representing the duration between them.
 
 ``` clj
 ; Allowed combinations
@@ -204,11 +204,11 @@ Months and years can't be in timespans, so we use this instead:
 (add-months (datetime 2014 1 31) 1) -> (datetime 2014 1 28)
 ```
 
-There are also `add-days`, `add-hours`, `add-minutes`, `add-seconds`, and `add-milliseconds` for consistency.
+There's also `add-days`, `add-hours`, `add-minutes`, `add-seconds`, and `add-milliseconds` for consistency.
 
 ### Comparisons
 
-Compare `datetime`s and `timespan`s just like you would numbers. Mixing & matching won't work - they all need to be the same type.
+Compare datetimes and timespans just like you would numbers. Mixing & matching won't work - they all need to be the same type.
 
 ``` clj
 (= (datetime 2014 1 1) (datetime 2014 1 1))
@@ -251,7 +251,7 @@ Some random, but useful stuff. Also look at [`with-precision`](http://mbossenbro
 
 ## Credits
 
-`simple-time` is based on .Net's [DateTime](http://msdn.microsoft.com/en-us/library/system.datetime(v=vs.110).aspx) and [TimeSpan](http://msdn.microsoft.com/en-us/library/system.timespan(v=vs.110).aspx), which are awesome. When using them, I never once experienced the pain that I've endured once switching to the multitude of JVM libraries.
+simple-time is based on .Net's [DateTime](http://msdn.microsoft.com/en-us/library/system.datetime(v=vs.110).aspx) and [TimeSpan](http://msdn.microsoft.com/en-us/library/system.timespan(v=vs.110).aspx), which are awesome. When using them, I never once experienced the pain that I've endured once switching to the multitude of JVM libraries.
 
 ## Motivations
 
@@ -259,11 +259,15 @@ JodaTime is very class-heavy. There's DateTime, DateMidnight, LocalDate, LocalTi
 
 This is likely because I'm using a language that doesn't have intellisense (at least not in the Java sense of the word). JodaTime was designed to have a fluent interface. Each object has a set of things you can do to it - easily discoverable via intellisense. If you took all of those functions from all of the different classes and threw them in the same bag, it would become incredibly difficult to determine what goes with what. Libraries like JodaTime work very well with a type system and intellisense - of which Clojure has neither.
 
-The naming conventions used in simple-time are designed to eliminate that ambiguity. `datetime->hour` takes a `datetime` and returns a number. `hours->timespan` takes a number and returns a `timespan`. You'll never get a crazy `Hours` type or some intermediate calculation. The only things you'll ever see are `datetime`, `timespan`, numbers, and strings.
+The naming conventions used in simple-time are designed to eliminate that ambiguity. `datetime->hour` takes a `datetime` and returns a number. `hours->timespan` takes a number and returns a `timespan`. You'll never get a crazy Hours type or some intermediate calculation. The only things you'll ever see are datetime, timespan, numbers, and strings.
+
+### But you use JodaTime??
+
+It's better than `java.util.Date` and `java.util.Calendar`
 
 ## Future Work
 
-Timezone is notably absent from simple-time at the moment. It will be added soon. Chronology will never be added.
+TimeZone is notably absent from simple-time at the moment. It will be added soon. Chronology will never be added.
 
 ## License
 
