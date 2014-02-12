@@ -1,4 +1,4 @@
-(defproject simple-time "0.1.1-SNAPSHOT"
+(defproject simple-time "0.1.1"
   :description "A dead-simple datetime/timespan library"
   :url "https://github.com/mbossenbroek/simple-time"
   :license {:name "Eclipse Public License"

@@ -11,7 +11,7 @@ A Clojure date & time library for people who can't tell time. It's an opinionate
 With Leiningen:
 
 ``` clj
-[simple-time "0.1.0"]
+[simple-time "0.1.1"]
 ```
 
 With Maven:
@@ -20,7 +20,7 @@ With Maven:
 <dependency>
   <groupId>simple-time</groupId>
   <artifactId>simple-time</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
@@ -247,6 +247,12 @@ Some random, but useful stuff. Also look at [`with-precision`](http://mbossenbro
 28
 => (days-in-month 2012 2)
 29
+
+(range (datetime 2014 1 1)) ; infinite seq
+(range (datetime 2014 1 1) (datetime 2014 1 4)) ; seq of 3 days
+(range (datetime 2014 1 1) (datetime 2014 1 4) 2) ; every 2 days
+(range (datetime 2014 1 1) (datetime 2013 12 25) -2) ; move backwards in time
+(range (datetime 2014 1 1 0 0 0) (datetime 2014 1 1 6 0 0) (hours->timespan 2)) ; move by any duration
 ```
 
 ## Credits
@@ -268,6 +274,11 @@ It's better than `java.util.Date` and `java.util.Calendar`
 ## Future Work
 
 TimeZone is notably absent from simple-time at the moment. It will be added soon. Chronology will never be added.
+
+## Release Notes
+
+  * 0.1.1 - Added range
+  * 0.1.0 - Initial commit
 
 ## License
 
