@@ -509,6 +509,81 @@
   (is (st/datetime? (st/utc-now)))
   (is (< 0 (st/datetime->epoch (st/utc-now)))))
 
+(deftest test-range
+  (testing "no end or step"
+    (is (= (take 4 (st/range (st/datetime 2014 1 1)))
+           [(st/datetime 2014 1 1)
+            (st/datetime 2014 1 2)
+            (st/datetime 2014 1 3)
+            (st/datetime 2014 1 4)])))
+  (testing "with end, no step"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 4))
+           [(st/datetime 2014 1 1)
+            (st/datetime 2014 1 2)
+            (st/datetime 2014 1 3)])))
+  (testing "start, end, and step"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 4) 2)
+           [(st/datetime 2014 1 1)
+            (st/datetime 2014 1 3)])))
+  (testing "empty"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 1))
+           [])))
+  (testing "empty, reverse"
+    (is (= (st/range (st/datetime 2014 1 4) (st/datetime 2014 1 1))
+           [])))
+  (testing "empty, negative"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 1) -1)
+           [])))
+  (testing "empty, reverse, negative"
+    (is (= (st/range (st/datetime 2014 1 4) (st/datetime 2014 1 1) -1)
+           [])))
+  (testing "negative step"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2013 12 25) -2)
+           [(st/datetime 2014 1 1)
+            (st/datetime 2013 12 30)
+            (st/datetime 2013 12 28)
+            (st/datetime 2013 12 26)])))
+  (testing "advance hours"
+    (is (= (st/range (st/datetime 2014 1 1 0 0 0) (st/datetime 2014 1 1 6 0 0) (st/hours->timespan 2))
+           [(st/datetime 2014 1 1 0 0 0)
+            (st/datetime 2014 1 1 2 0 0)
+            (st/datetime 2014 1 1 4 0 0)])))
+  (testing "user fn"
+    (is (= (st/range (st/datetime 2013 11 1) (st/datetime 2014 6 1)
+                     (fn [dt]
+                       (let [dt (st/add-months dt 1)
+                             y (st/datetime->year dt)
+                             m (st/datetime->month dt)
+                             d (st/days-in-month dt)]
+                       (st/datetime y m d))))
+           [(st/datetime 2013 11 1)
+            (st/datetime 2013 12 31)
+            (st/datetime 2014 1 31)
+            (st/datetime 2014 2 28)
+            (st/datetime 2014 3 31)
+            (st/datetime 2014 4 30)
+            (st/datetime 2014 5 31)])))
+  (testing "daylight savings time with no timezone - add days"
+    (is (= (st/range (st/datetime 2014 3 8) (st/datetime 2014 3 12))
+           [(st/datetime 2014 3 8)
+            (st/datetime 2014 3 9)
+            (st/datetime 2014 3 10)
+            (st/datetime 2014 3 11)])))
+  (testing "daylight savings time with no timezone - add 24 hours"
+    (is (= (st/range (st/datetime 2014 3 8) (st/datetime 2014 3 12) (st/days->timespan 1))
+           [(st/datetime 2014 3 8)
+            (st/datetime 2014 3 9)
+            (st/datetime 2014 3 10)
+            (st/datetime 2014 3 11)]))))
+
+(deftest test-total-months
+  (is (= 1 (st/total-months (st/datetime 2014 1 1) (st/datetime 2014 2 1))))
+  (is (= 865/868 (st/total-months (st/datetime 2014 1 31) (st/datetime 2014 2 28))))
+  (is (= 910/868 (st/total-months (st/datetime 2014 1 15) (st/datetime 2014 2 15))))
+  (is (= 12 (st/total-months (st/datetime 2013 1 1) (st/datetime 2014 1 1))))
+  (is (= 10388/868 (st/total-months (st/datetime 2014 1 1) (st/datetime 2014 12 31))))
+  (is (= 12 (st/total-months (st/datetime 2012 1 1) (st/datetime 2013 1 1)))))
+
 ;; ****************************************************************************
 
 (defn safe-parse [value format]

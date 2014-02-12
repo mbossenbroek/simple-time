@@ -1,5 +1,5 @@
 (ns simple-time.core
-  (:refer-clojure :exclude [format + - = not= < > <= >= with-precision])
+  (:refer-clojure :exclude [format + - = not= < > <= >= with-precision range])
   (:require [simple-time.interop :as jt])
   (:import [org.joda.time LocalDateTime DateTimeZone Duration Period]
            [org.joda.time.format DateTimeFormat DateTimeFormatter ISODateTimeFormat]))
@@ -713,11 +713,14 @@ datetime or timespan and returns it with the specified precision.
     (days-in-month 2014 1) -> 31
     (days-in-month 2014 2) -> 28
     (days-in-month 2012 2) -> 29
+
+    (days-in-month (datetime 2014 1 15)) -> 31
 "
-  [year month]
-  {:pre [(every? number? [year month])]}
-  (let [value (jt/datetime->LocalDateTime (datetime year month 1))]
-    (.. value dayOfMonth getMaximumValue)))
+  ([year month]
+    {:pre [(every? number? [year month])]}
+    (let [value (jt/datetime->LocalDateTime (datetime year month 1))]
+      (.. value dayOfMonth getMaximumValue)))
+  ([datetime] (days-in-month (datetime->year datetime) (datetime->month datetime))))
 
 (defn now
   "Returns the current datetime."
@@ -738,6 +741,56 @@ datetime or timespan and returns it with the specified precision.
 #_(defn ->utc
    "Converts a local datetime to UTC."
    []=)
+
+(defn range
+  "Returns a lazy sequence of datetimes, beginning with start (inclusive) through
+end (exclusive). If end is not specified, the sequence will be infinite. The
+parameter step specifies the interval. It can be a number (increase by that
+number of days), a timespan (increase by that amount of time), or any function
+that takes a single datetime and returns another datetime. If a function is used
+to step, it must be free of side effects.
+
+  Example:
+    (->> (range (datetime 2014 1 1)) (take 4))
+    (range (datetime 2014 1 1) (datetime 2014 1 4))
+    (range (datetime 2014 1 1) (datetime 2014 1 4) 2)
+    (range (datetime 2014 1 1) (datetime 2013 12 25) -2)
+    (range (datetime 2014 1 1 0 0 0) (datetime 2014 1 1 6 0 0) (hours->timespan 2))
+    (range (datetime 2013 11 1) (datetime 2014 6 1)
+           (fn [dt]
+             (let [dt (add-months dt 1)
+                   y (datetime->year dt)
+                   m (datetime->month dt)
+                   d (days-in-month dt)]
+             (datetime y m d))))
+"
+  ([start]
+    (range start nil 1))
+  ([start end]
+    (range start end 1))
+  ([start end step]
+    {:pre [(datetime? start) ((some-fn datetime? nil?) end)]}
+    (let [step-fn (cond
+                    (timespan? step) #(+ % step)
+                    (number? step) #(add-days % step)
+                    (fn? step) step
+                    :else (throw (IllegalArgumentException. (str "Unknown step fn:" step))))
+          ;; if the first step increases, the sequence is increasing; else decreasing
+          comp (delay (if (< start (step-fn start)) < >))]
+      (->>
+        (iterate step-fn start)
+        (take-while #(or (nil? end) (@comp % end)))))))
+
+(defn total-months
+  "EXPERIMENTAL - May change or be removed.
+
+Calculates the total number of months between start (inclusive) and end
+(exclusive). The calculation used is the sum of 1/days-in-month for each date
+in the range."
+  [start end]
+  (->> (range start end)
+    (map #(/ 1 (days-in-month %)))
+    (reduce clojure.core/+)))
 
 ;; ****************************************************************************
 
