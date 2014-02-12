@@ -525,6 +525,18 @@
     (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 4) 2)
            [(st/datetime 2014 1 1)
             (st/datetime 2014 1 3)])))
+  (testing "empty"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 1))
+           [])))
+  (testing "empty, reverse"
+    (is (= (st/range (st/datetime 2014 1 4) (st/datetime 2014 1 1))
+           [])))
+  (testing "empty, negative"
+    (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2014 1 1) -1)
+           [])))
+  (testing "empty, reverse, negative"
+    (is (= (st/range (st/datetime 2014 1 4) (st/datetime 2014 1 1) -1)
+           [])))
   (testing "negative step"
     (is (= (st/range (st/datetime 2014 1 1) (st/datetime 2013 12 25) -2)
            [(st/datetime 2014 1 1)
