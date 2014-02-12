@@ -742,17 +742,6 @@ datetime or timespan and returns it with the specified precision.
    "Converts a local datetime to UTC."
    []=)
 
-(defn ^:private range*
-  [start end step-fn comp]
-    {:pre [(datetime? start)
-           ((some-fn datetime? nil?) end)
-           (fn? step-fn)
-           (fn? comp)]}  
-  (when (or (nil? end) (comp start end))
-    (lazy-seq
-      (cons start
-            (range* (step-fn start) end step-fn comp)))))
-
 (defn range
   "Returns a lazy sequence of datetimes, beginning with start (inclusive) through
 end (exclusive). If end is not specified, the sequence will be infinite. The
@@ -787,8 +776,10 @@ to step, it must be free of side effects.
                     (fn? step) step
                     :else (throw (IllegalArgumentException. (str "Unknown step fn:" step))))
           ;; if the first step increases, the sequence is increasing; else decreasing
-          comp (if (< start (step-fn start)) < >)]
-      (range* start end step-fn comp))))
+          comp (delay (if (< start (step-fn start)) < >))]
+      (->>
+        (iterate step-fn start)
+        (take-while #(or (nil? end) (@comp % end)))))))
 
 (defn total-months
   "EXPERIMENTAL - May change or be removed.
