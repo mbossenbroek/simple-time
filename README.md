@@ -11,7 +11,7 @@ A Clojure date & time library for people who can't tell time. It's an opinionate
 With Leiningen:
 
 ``` clj
-[simple-time "0.1.1"]
+[simple-time "0.2.0"]
 ```
 
 With Maven:
@@ -20,7 +20,7 @@ With Maven:
 <dependency>
   <groupId>simple-time</groupId>
   <artifactId>simple-time</artifactId>
-  <version>0.1.1</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
@@ -277,6 +277,7 @@ TimeZone is notably absent from simple-time at the moment. It will be added soon
 
 ## Release Notes
 
+  * 0.2.0 - Fix epoch handling and default parsing to be in UTC
   * 0.1.1 - Added range
   * 0.1.0 - Initial commit
 
