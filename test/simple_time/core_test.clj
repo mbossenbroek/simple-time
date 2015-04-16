@@ -18,19 +18,20 @@
            123)))
   (let [datetime (st/datetime 2014 1 2)]
     (is (= (st/datetime->epoch datetime)
-           1388649600000)))
+           1388620800000)))
   (let [datetime (st/datetime 2014 1 2 3 4 5)]
     (is (= (st/datetime->epoch datetime)
-           1388660645000)))
+           1388631845000)))
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->epoch datetime)
-           1388660645006)))
+           1388631845006)))
   (let [datetime (st/datetime 1950 6 1)]
     (is (= (st/datetime->epoch datetime)
-           -618080400000)))
+           -618105600000)))
   (let [datetime (st/datetime -618080400000)]
     (is (= (st/datetime->epoch datetime)
            -618080400000)))
+  (is (= 0 (st/datetime->epoch (st/datetime 0))))
   (is (thrown? AssertionError (st/datetime "42"))))
 
 ;; ****************************************************************************
@@ -39,7 +40,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->year datetime)
            2014)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->year datetime)
            2014)))
   (is (thrown? AssertionError (st/datetime->year "42"))))
@@ -48,7 +49,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->month datetime)
            1)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->month datetime)
            1)))
   (is (thrown? AssertionError (st/datetime->month "42"))))
@@ -57,7 +58,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->day datetime)
            2)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->day datetime)
            2)))
   (is (thrown? AssertionError (st/datetime->day "42"))))
@@ -66,7 +67,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->hour datetime)
            3)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->hour datetime)
            3)))
   (is (thrown? AssertionError (st/datetime->hour "42"))))
@@ -75,7 +76,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->minute datetime)
            4)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->minute datetime)
            4)))
   (is (thrown? AssertionError (st/datetime->minute "42"))))
@@ -84,7 +85,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->second datetime)
            5)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->second datetime)
            5)))
   (is (thrown? AssertionError (st/datetime->second "42"))))
@@ -93,7 +94,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->millisecond datetime)
            6)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->millisecond datetime)
            6)))
   (is (thrown? AssertionError (st/datetime->millisecond "42"))))
@@ -101,11 +102,18 @@
 (deftest test-datetime->epoch
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->epoch datetime)
-           1388660645006)))
-  (let [datetime (st/datetime 1388660645006)]
+           1388631845006)))
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->epoch datetime)
-           1388660645006)))
-  (is (thrown? AssertionError (st/datetime->epoch "42"))))
+           1388631845006)))
+  (is (thrown? AssertionError (st/datetime->epoch "42")))
+
+  (testing "epochs should be UTC"
+    (= 0 (-> 0
+           (st/datetime)
+           (st/format)
+           (st/parse)
+           (st/datetime->epoch)))))
 
 ;; ****************************************************************************
 
@@ -344,7 +352,7 @@
             (st/datetime 2014 1 1)
             (st/datetime 2014 1 1)))
   (is (st/= (st/datetime 2014 1 1)
-            (st/datetime 1388563200000)))
+            (st/datetime 1388534400000)))
   (is (not (st/= (st/datetime 2014 1 1)
                  (st/datetime 2014 1 2)))))
 
@@ -356,7 +364,7 @@
                     (st/datetime 2014 1 1)
                     (st/datetime 2014 1 1))))
   (is (not (st/not= (st/datetime 2014 1 1)
-                    (st/datetime 1388563200000))))
+                    (st/datetime 1388534400000))))
   (is (st/not= (st/datetime 2014 1 1)
                (st/datetime 2014 1 2))))
 
@@ -455,17 +463,17 @@
 (deftest test-datetime->date
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->epoch (st/datetime->date datetime))
-           1388649600000)))
-  (let [datetime (st/datetime 1388660645006)]
+           1388620800000)))
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->epoch (st/datetime->date datetime))
-           1388649600000)))
+           1388620800000)))
   (is (thrown? AssertionError (st/datetime->date "42"))))
 
 (deftest test-datetime->day-of-week
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->day-of-week datetime)
            4)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->day-of-week datetime)
            4)))
   (is (thrown? AssertionError (st/datetime->day-of-week "42"))))
@@ -474,7 +482,7 @@
   (let [datetime (st/datetime 2014 1 2 3 4 5 6)]
     (is (= (st/datetime->day-of-year datetime)
            2)))
-  (let [datetime (st/datetime 1388660645006)]
+  (let [datetime (st/datetime 1388631845006)]
     (is (= (st/datetime->day-of-year datetime)
            2)))
   (is (thrown? AssertionError (st/datetime->day-of-year "42"))))
