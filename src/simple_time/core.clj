@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [format + - = not= < > <= >= with-precision range])
   (:require [simple-time.interop :as jt])
   (:import [org.joda.time LocalDateTime DateTimeZone Duration Period]
-           [org.joda.time.format DateTimeFormat DateTimeFormatter ISODateTimeFormat]))
+           [org.joda.time.format DateTimeFormat DateTimeFormatter ISODateTimeFormat]
+           [org.joda.time.chrono ISOChronology]))
 
 (set! *warn-on-reflection* true)
 
@@ -39,7 +40,7 @@
     (->SimpleDateTime (LocalDateTime.)))
   ([epoch]
     {:pre [(number? epoch)]}
-    (->SimpleDateTime (LocalDateTime. epoch)))
+    (->SimpleDateTime (LocalDateTime. epoch (ISOChronology/getInstanceUTC))))
   ([year month day]
     {:pre [(every? number? [year month day])]}
     (->SimpleDateTime (LocalDateTime. year month day 0 0 0 0)))
@@ -133,7 +134,7 @@
   "Returns the java epoch (milliseconds since Jan 1, 1970) of the specified date"
   [^SimpleDateTime datetime]
   {:pre [(datetime? datetime)]}
-  (-> datetime jt/datetime->LocalDateTime .toDateTime .getMillis))
+  (-> datetime jt/datetime->LocalDateTime (.toDateTime DateTimeZone/UTC) .getMillis))
 
 ;; ****************************************************************************
 
@@ -427,13 +428,13 @@ must be only one datetime.
 (defn ^:private -*
   "Handles (datetime - datetime) and (datetime - timespans*)"
   [^SimpleDateTime datetime [first & rest :as timespans]]
-  (cond 
+  (cond
     (and (datetime? first) (empty? rest))
     (->SimpleTimeSpan (clojure.core/- (datetime->epoch datetime) (datetime->epoch first)))
-    
+
     (every? timespan? timespans)
     (->> timespans sum-timespans Duration. (.minus (jt/datetime->LocalDateTime datetime)) ->SimpleDateTime)
-    
+
     :else (throw-illegal-math "subtraction" datetime timespans)))
 
 (defn -
@@ -538,7 +539,7 @@ must be only one datetime.
     (datetime? value) (datetime->epoch value)
     (timespan? value) (:milliseconds value)
     :else (throw (IllegalArgumentException. (str "Unknown value:" value)))))
-  
+
 (defn ^:private compare* [comparator]
   (fn [t & more]
     (->> (cons t more)
@@ -637,10 +638,10 @@ datetime or timespan and returns it with the specified precision.
           (if (:minute precision) (datetime->minute datetime) 0)
           (if (:second precision) (datetime->second datetime) 0)
           (if (:millisecond precision) (datetime->millisecond datetime) 0))
-        
+
         (:month precision)
         (throw (IllegalArgumentException. "When using :month precision, you must also use :year."))
-        
+
         :else
         (timespan
           (if (:day precision) (datetime->day datetime) 0)
@@ -648,7 +649,7 @@ datetime or timespan and returns it with the specified precision.
           (if (:minute precision) (datetime->minute datetime) 0)
           (if (:second precision) (datetime->second datetime) 0)
           (if (:millisecond precision) (datetime->millisecond datetime) 0)))
-    
+
       (timespan? datetime)
       (timespan
           (if (:day precision) (timespan->days datetime) 0)
@@ -813,7 +814,7 @@ in the range."
   "Creates a formatter from a string. Don't use directly - use formatter instead."
   (memoize
     (fn [format]
-      (DateTimeFormat/forPattern format))))
+      (.withZoneUTC (DateTimeFormat/forPattern format)))))
 
 (defn ^:private add-timezone
   "Adds a Z to the end of a local datetime so that it will parse."
@@ -833,17 +834,17 @@ in the range."
 (def formatters
   {
    ;; datetime
-   
+
    :basic-date
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :basic-date-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicDateTime)
      :pre-parse add-timezone)
-   
+
    :basic-date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicDateTimeNoMillis)
@@ -854,18 +855,18 @@ in the range."
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicOrdinalDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :basic-ordinal-date-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicOrdinalDateTime)
      :pre-parse add-timezone)
-   
+
    :basic-ordinal-date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicOrdinalDateTimeNoMillis)
      :pre-parse add-timezone
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :basic-week-date
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicWeekDate)
@@ -875,44 +876,44 @@ in the range."
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicWeekDateTime)
      :pre-parse add-timezone)
-   
+
    :basic-week-date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicWeekDateTimeNoMillis)
      :pre-parse add-timezone
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :date
    (->simple-formatter
      :formatter (ISODateTimeFormat/date)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :date-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateTime)
      :pre-parse add-timezone)
-   
+
    :date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateTimeNoMillis)
      :pre-parse add-timezone
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :date-hour
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateHour)
      :round-trip (with-precision #{:year :month :day :hour}))
-   
+
    :date-hour-minute
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateHourMinute)
      :round-trip (with-precision #{:year :month :day :hour :minute}))
-   
+
    :date-hour-minute-second
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateHourMinuteSecond)
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :date-hour-minute-second-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/dateHourMinuteSecondMillis))
@@ -926,56 +927,56 @@ in the range."
    (->simple-formatter
      :formatter (ISODateTimeFormat/ordinalDateTime)
      :pre-parse add-timezone)
-   
+
    :ordinal-date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/ordinalDateTimeNoMillis)
      :pre-parse add-timezone
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :week-date
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :week-date-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekDateTime)
      :pre-parse add-timezone)
-   
+
    :week-date-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekDateTimeNoMillis)
      :pre-parse add-timezone
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :weekyear
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekyear)
      :round-trip #(with-precision #{:year :month :day}
                     (- % (days->timespan (datetime->day-of-week %)) (days->timespan -1))))
-   
+
    :weekyear-week
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekyearWeek)
      :round-trip #(with-precision #{:year :month :day}
                     (- % (days->timespan (datetime->day-of-week %)) (days->timespan -1))))
-   
+
    :weekyear-week-day
    (->simple-formatter
      :formatter (ISODateTimeFormat/weekyearWeekDay)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :year
    (->simple-formatter
      :formatter (ISODateTimeFormat/year)
      :round-trip (with-precision #{:year}))
-   
+
    :year-month
    (->simple-formatter
      :formatter (ISODateTimeFormat/yearMonth)
      :round-trip (with-precision #{:year :month}))
-   
+
    :year-month-day
    (->simple-formatter
      :formatter (ISODateTimeFormat/yearMonthDay)
@@ -985,27 +986,27 @@ in the range."
    (->simple-formatter
      :formatter (DateTimeFormat/shortDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :short-date-time
    (->simple-formatter
      :formatter (DateTimeFormat/shortDateTime)
      :round-trip (with-precision #{:year :month :day :hour :minute}))
-   
+
    :medium-date
    (->simple-formatter
      :formatter (DateTimeFormat/mediumDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :medium-date-time
    (->simple-formatter
      :formatter (DateTimeFormat/mediumDateTime)
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
-   
+
    :long-date
    (->simple-formatter
      :formatter (DateTimeFormat/longDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :long-date-time
    (->simple-formatter
      :formatter (DateTimeFormat/longDateTime)
@@ -1017,17 +1018,17 @@ in the range."
    (->simple-formatter
      :formatter (string->formatter "MMMM d")
      :round-trip nil)
-   
+
    :long-year-month
    (->simple-formatter
      :formatter (string->formatter "MMMM, YYYY")
      :round-trip (with-precision #{:year :month}))
-   
+
    :full-date
    (->simple-formatter
      :formatter (DateTimeFormat/fullDate)
      :round-trip (with-precision #{:year :month :day}))
-   
+
    :full-date-time
    (->simple-formatter
      :formatter (DateTimeFormat/fullDateTime)
@@ -1036,35 +1037,35 @@ in the range."
      :round-trip (with-precision #{:year :month :day :hour :minute :second}))
 
    ;; timespan
-   
+
    :basic-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicTime)
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second :millisecond}))
-   
+
    :basic-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicTimeNoMillis)
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-   
+
    :basic-t-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicTTime)
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second :millisecond}))
-   
+
    :basic-t-time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/basicTTimeNoMillis)
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-   
+
    :hour
    (->simple-formatter
      :formatter (ISODateTimeFormat/hour)
@@ -1076,13 +1077,13 @@ in the range."
      :formatter (ISODateTimeFormat/hourMinute)
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute}))
-   
+
    :hour-minute-second
    (->simple-formatter
      :formatter (ISODateTimeFormat/hourMinuteSecond)
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-   
+
    :hour-minute-second-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/hourMinuteSecondMillis)
@@ -1095,14 +1096,14 @@ in the range."
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second :millisecond}))
-     
+
    :time-no-ms
    (->simple-formatter
      :formatter (ISODateTimeFormat/timeNoMillis)
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
-     :round-trip (with-precision #{:hour :minute :second}))     
-     
+     :round-trip (with-precision #{:hour :minute :second}))
+
    :t-time
    (->simple-formatter
      :formatter (ISODateTimeFormat/tTime)
@@ -1116,19 +1117,19 @@ in the range."
      :pre-parse add-timezone
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-   
+
    :short-time
    (->simple-formatter
      :formatter (DateTimeFormat/shortTime)
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute}))
-     
+
    :medium-time
    (->simple-formatter
      :formatter (DateTimeFormat/mediumTime)
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-     
+
    :long-time
    (->simple-formatter
      :formatter (DateTimeFormat/longTime)
@@ -1136,7 +1137,7 @@ in the range."
      :pre-parse add-timezone-long
      :post-parse datetime->time-of-day
      :round-trip (with-precision #{:hour :minute :second}))
-     
+
    :full-time
    (->simple-formatter
      :formatter (DateTimeFormat/fullTime)
