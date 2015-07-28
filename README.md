@@ -155,7 +155,7 @@ Each of them takes the value to format or parse and an optional formatter:
 "Jan 2, 2014 12:34:56 PM"
 
 (parse "2014-01-02T12:34:56.789") -> (datetime 2014 1 2 12 34 56 789)
-(parse "20140102" "YYYYmmDD") -> (datetime 2014 1 2)
+(parse "20140102" "YYYYMMdd") -> (datetime 2014 1 2)
 (parse "Jan 2, 2014 12:34:56 PM" :medium-date-time) -> (datetime 2014 1 2 12 34 56)
 ```
 
