@@ -148,7 +148,7 @@ Each of them takes the value to format or parse and an optional formatter:
 => (format (datetime 2014 1 2 12 34 56 789))
 "2014-01-02T12:34:56.789"
 
-=> (t/format (t/datetime 2014 1 2 12 34 56 789) "YYYYMMdd")
+=> (format (datetime 2014 1 2 12 34 56 789) "YYYYMMdd")
 "20140102"
 
 => (format (datetime 2014 1 2 12 34 56 789) :medium-date-time)
