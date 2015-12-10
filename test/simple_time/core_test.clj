@@ -268,7 +268,9 @@
   (is (= (st/+ (st/timespan 123) (st/timespan 123) (st/timespan 123))
          (st/timespan 369)))
   (is (thrown? AssertionError (st/+ (st/datetime 123) (st/datetime 123))))
-  (is (thrown? AssertionError (st/+ (st/datetime 123) (st/timespan 123) (st/datetime 123)))))
+  (is (thrown? AssertionError (st/+ (st/datetime 123) (st/timespan 123) (st/datetime 123))))
+  (is (= (st/+ (st/datetime 123) (st/days->timespan 60))
+         (st/datetime 5184000123))))
 
 (deftest test--*
   (is (= (#'simple-time.core/-* (st/datetime 123) [(st/datetime 100)])

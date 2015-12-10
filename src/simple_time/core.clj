@@ -421,9 +421,21 @@ must be only one datetime.
           [datetime :as datetimes] (filter datetime? all)
           timespans (filter timespan? all)]
       (cond
-        (empty? datetimes) (->SimpleTimeSpan (sum-timespans timespans))
-        (clojure.core/= 1 (count datetimes)) (->SimpleDateTime (.plusMillis (jt/datetime->LocalDateTime datetime) (sum-timespans timespans)))
-        :else (throw-illegal-math "addition" datetime timespans)))))
+        (empty? datetimes)
+        (->SimpleTimeSpan (sum-timespans timespans))
+
+        (clojure.core/= 1 (count datetimes))
+        (->SimpleDateTime
+          (loop [ldt (jt/datetime->LocalDateTime datetime)
+                 remaining (sum-timespans timespans)]
+            (if (clojure.core/<= remaining Integer/MAX_VALUE)
+              (.plusMillis ldt remaining)
+              (recur
+                (.plusMillis ldt Integer/MAX_VALUE)
+                (clojure.core/- remaining Integer/MAX_VALUE)))))
+
+          :else
+          (throw-illegal-math "addition" datetime timespans)))))
 
 (defn ^:private -*
   "Handles (datetime - datetime) and (datetime - timespans*)"
