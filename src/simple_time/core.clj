@@ -1158,15 +1158,18 @@ format.
     (formatter \"YYYYmmDD\")
     (formatter :date-time)
 "
-  [format]
-  {:post [%]}
-  (cond
-    (instance? SimpleFormatter format) format
-    (instance? DateTimeFormatter format) (->simple-formatter :formatter format)
-    (keyword? format) (formatter (formatters format))
-    (string? format) (formatter (string->formatter format))
-    (map? format) (->simple-formatter format)
-    :else (throw (IllegalArgumentException. (str "Unknown formatter:" format)))))
+  ([format]
+    {:post [%]}
+    (cond
+      (instance? SimpleFormatter format) format
+      (instance? DateTimeFormatter format) (->simple-formatter :formatter format)
+      (keyword? format) (formatter (formatters format))
+      (string? format) (formatter (string->formatter format))
+      (map? format) (->simple-formatter format)
+      :else (throw (IllegalArgumentException. (str "Unknown formatter:" format)))))
+  ([format timezone]
+    (-> (formatter format)
+      (update-in [:formatter] #(.withZone ^DateTimeFormatter % (DateTimeZone/forID timezone))))))
 
 ;; TODO edn inst
 ;; TODO timespan
